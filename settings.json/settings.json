@@ -1,0 +1,12 @@
+{
+    "liveServer.settings.CustomHeaders": [
+        {
+            "Key": "Cross-Origin-Opener-Policy",
+            "Value": "same-origin"
+        },
+        {
+            "Key": "Cross-Origin-Embedder-Policy",
+            "Value": "require-corp"
+        }
+    ]
+}

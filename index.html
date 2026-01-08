@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8">
+    <title>3D Maze Adventure - Full Custom Edition</title>
+    <style>
+        html,body{height:100%;margin:0;background:#111;color:#fff;font-family:sans-serif;overflow:hidden}
+        #startScreen{position:fixed;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;background:rgba(0,0,0,0.9);z-index:50}
+        .btn-group { display: flex; gap: 15px; margin-top: 20px; }
+        .diff-btn{padding:15px 30px; border-radius:8px; color:#fff; font-weight:bold; cursor:pointer; border:0; font-size:18px; transition: 0.2s; min-width: 120px;}
+        .easy { background: #2ecc71; box-shadow: 0 4px #27ae60; }
+        .normal { background: #3498db; box-shadow: 0 4px #2980b9; }
+        .custom { background: #e67e22; box-shadow: 0 4px #d35400; }
+        .diff-btn:active{ transform:translateY(2px); box-shadow: none; }
+        
+        /* カスタムパネルのスタイル */
+        #customPanel {
+            display: none; margin-top: 20px; background: rgba(255, 255, 255, 0.05); 
+            padding: 20px; border-radius: 15px; border: 1px solid #e67e22; width: 340px;
+        }
+        .ctrl-row { display: flex; justify-content: space-between; align-items: center; margin: 12px 0; }
+        .ctrl-row .label-text { flex: 1; font-size: 15px; color: #ccc; }
+        .ctrl-btn { width: 32px; height: 32px; background: #444; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 18px; }
+        .ctrl-btn:hover { background: #666; }
+        .val-display { width: 60px; text-align: center; font-family: monospace; font-size: 18px; color: #ffad33; font-weight: bold; }
+
+        #ui{position:fixed;left:20px;top:20px;z-index:30;background:rgba(255,255,255,0.1);padding:15px;border-radius:12px;backdrop-filter:blur(5px);border:1px solid #4db8ff}
+        #message{position:fixed; top:20%; left:50%; transform:translateX(-50%); font-size:40px; font-weight:bold; color:#ff0; text-shadow:2px 2px #000; display:none; z-index:100;}
+        canvas{display:block;width:100vw;height:100vh}
+    </style>
+</head>
+<body>
+
+<div id="message"></div>
+
+<div id="startScreen">
+    <h1>✨ 3D Maze Adventure ✨</h1>
+    <p id="status">JavaScript AI エンジン準備完了</p>
+    
+    <div class="btn-group">
+        <button class="diff-btn easy" onclick="startGame('easy')">EASY</button>
+        <button class="diff-btn normal" onclick="startGame('normal')">NORMAL</button>
+        <button class="diff-btn custom" onclick="toggleCustom()">CUSTOM</button>
+    </div>
+
+    <div id="customPanel">
+        <div class="ctrl-row">
+            <span class="label-text">迷路の広さ (11-51)</span>
+            <button class="ctrl-btn" onclick="adj('mapSize',-2,11,51)">-</button>
+            <span id="v_mapSize" class="val-display">21</span>
+            <button class="ctrl-btn" onclick="adj('mapSize',2,11,51)">+</button>
+        </div>
+        <div class="ctrl-row">
+            <span class="label-text">敵の数 (0-10)</span>
+            <button class="ctrl-btn" onclick="adj('enemyCount',-1,0,10)">-</button>
+            <span id="v_enemyCount" class="val-display">1</span>
+            <button class="ctrl-btn" onclick="adj('enemyCount',1,0,10)">+</button>
+        </div>
+        <div class="ctrl-row">
+            <span class="label-text">敵の移動速度</span>
+            <button class="ctrl-btn" onclick="adj('enemySpeed',-0.2,0.2,4.0)">-</button>
+            <span id="v_enemySpeed" class="val-display">1.2</span>
+            <button class="ctrl-btn" onclick="adj('enemySpeed',0.2,0.2,4.0)">+</button>
+        </div>
+        <div class="ctrl-row">
+            <span class="label-text">アイテムの数</span>
+            <button class="ctrl-btn" onclick="adj('itemCount',-5,5,100)">-</button>
+            <span id="v_itemCount" class="val-display">15</span>
+            <button class="ctrl-btn" onclick="adj('itemCount',5,5,100)">+</button>
+        </div>
+        <div class="ctrl-row">
+            <span class="label-text">制限時間 (秒)</span>
+            <button class="ctrl-btn" onclick="adj('startTime',-10,10,600)">-</button>
+            <span id="v_startTime" class="val-display">60</span>
+            <button class="ctrl-btn" onclick="adj('startTime',10,10,600)">+</button>
+        </div>
+        <button class="diff-btn custom" onclick="startGame('custom')" style="width:100%; margin-top:15px; box-shadow: none;">この設定で開始</button>
+    </div>
+</div>
+
+<div id="ruleScreen" style="position:fixed; inset:0; display:none; flex-direction:column; justify-content:center; align-items:center; background:rgba(0,0,50,0.9); z-index:100; text-align:center;">
+    <div style="border:3px solid #4db8ff; padding:40px; border-radius:20px; background:rgba(0,0,0,0.8); backdrop-filter:blur(10px); max-width: 80%;">
+        <h2 style="color:#4db8ff; font-size:42px; margin-bottom:10px;">MISSION</h2>
+        <div id="modeDetail" style="background:rgba(255,0,0,0.2); padding:10px; border-radius:10px; margin-bottom:20px; border:1px solid #f00; font-weight:bold; color:#ffcccc;"></div>
+        <p style="font-size:22px; line-height:1.6; text-align:left; display:inline-block;">
+            💰 <strong>コイン</strong>: スコアアップ (+100)<br>
+            💎 <strong>青ダイヤ</strong>: タイム回復 (+25秒)<br>
+            👾 <strong>赤い敵</strong>: 捕まると即ゲームオーバー！<br>
+            🏁 <strong>ピンクの柱</strong>: 脱出地点（ゴール）
+        </p>
+        <hr style="border:0; border-top:1px solid #333; margin:20px 0;">
+        <p style="font-size:18px; color:#aaa;">[WASD] 移動 / [マウス] 視点 / [T] タイトルへ</p>
+        <button class="diff-btn normal" onclick="closeRules()" style="margin-top:20px; width:200px;">理解した！</button>
+    </div>
+</div>
+
+<div id="ui" style="display:none">
+    <div id="info">SCORE: 0 | TIME: 60s</div>
+    <div style="margin-top:5px;">
+        <small>感度: </small><input type="range" id="sensRange" min="1" max="20" value="10" style="vertical-align:middle;">
+    </div>
+    <small>Tキーで終了 / 画面クリックでマウス固定</small>
+</div>
+
+<canvas id="screen"></canvas>
+
+<script>
+    // カスタム初期値
+    let customVals = { mapSize: 21, enemyCount: 1, enemySpeed: 1.2, itemCount: 15, startTime: 60 };
+
+    // パネルの表示切り替え
+    function toggleCustom() {
+        const p = document.getElementById('customPanel');
+        p.style.display = (p.style.display === 'block') ? 'none' : 'block';
+    }
+
+    // 数値調整ロジック
+    function adj(key, delta, min, max) {
+        customVals[key] = Math.max(min, Math.min(max, parseFloat((customVals[key] + delta).toFixed(1))));
+        document.getElementById('v_' + key).innerText = customVals[key];
+    }
+</script>
+
+<script src="./js/game.js"></script>
+
+</body>
+</html>

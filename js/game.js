@@ -6,6 +6,13 @@ const ctx = canvas.getContext('2d');
 const infoUI = document.getElementById('info');
 const msgUI = document.getElementById('message');
 
+// ==== デバイス判定 ====
+const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+
+// レイ数分岐
+let RAYS = isTouch ? 160 : 300;
+
+
 const W = 1200, H = 600; 
 canvas.width = W; canvas.height = H;
 
@@ -20,6 +27,14 @@ let enemies = [];
 let items = [], depthBuffer = []; 
 let goal = { x: 0, y: 0, color: '#ff00ff' };
 let config = { enemySpeed: 1.5, playerSpeed: 3.5, rotSpeed: 2.8, itemCount: 15 };
+
+// ===== スマホ操作状態 =====
+let touchState = {
+    forward: false,
+    back: false,
+    turn: 0   // -1:左回転 / +1:右回転
+};
+
 
 /* ===== 経路探索(BFS)エンジン ===== */
 const GameAI = {
@@ -158,8 +173,8 @@ function draw() {
     ctx.fillStyle = "#4a7c44"; ctx.fillRect(0, H / 2 + pitch, W, H / 2 - pitch);
     
     depthBuffer = [];
-    for (let i = 0; i < 300; i++) {
-        let rayAngle = (pa - FOV / 2) + (i / 300) * FOV;
+    for (let i = 0; i < RAYS; i++) {
+        let rayAngle = (pa - FOV / 2) + (i / RAYS) * FOV;
         let dist = 0, sx = px, sy = py;
         const cos = Math.cos(rayAngle) * 0.05, sin = Math.sin(rayAngle) * 0.05;
         while (dist < 20) {
@@ -170,7 +185,7 @@ function draw() {
         let wallH = H / (dist * Math.cos(rayAngle - pa) + 0.001);
         let shade = Math.max(0, 200 - dist * 15);
         ctx.fillStyle = `rgb(${shade}, ${shade * 0.8}, ${shade * 1.2})`;
-        ctx.fillRect(i * (W/300), (H - wallH) / 2 + pitch, (W/300) + 1, wallH);
+        ctx.fillRect(i * (W/RAYS), (H - wallH) / 2 + pitch, (W/RAYS) + 1, wallH);
     }
 
     let showGoal = (gameMode !== 'normal' || timeLeft <= 30);
@@ -183,7 +198,7 @@ function draw() {
         while (angle < -Math.PI) angle += Math.PI * 2;
         while (angle > Math.PI) angle -= Math.PI * 2;
         if (Math.abs(angle) < FOV / 2 && dist < 15) {
-            const rayIdx = Math.floor((angle / FOV + 0.5) * 300);
+            const rayIdx = Math.floor((angle / FOV + 0.5) * RAYS);
             if (dist < (depthBuffer[rayIdx] || 20)) {
                 const screenX = (angle / (FOV/2) * 0.5 + 0.5) * W;
                 const size = H / dist, sy = H/2 - size/2 + pitch;
@@ -214,7 +229,14 @@ async function loop() {
 
     if (keys['a'] || keys['arrowleft']) pa -= config.rotSpeed * dt;
     if (keys['d'] || keys['arrowright']) pa += config.rotSpeed * dt;
+    // スマホ回転
+    if (isTouch && touchState.turn !== 0) {
+    pa += touchState.turn * config.rotSpeed * dt;
+    }
+
     let move = (keys['w'] || keys['arrowup'] ? 1 : keys['s'] || keys['arrowdown'] ? -1 : 0);
+    if (isTouch && touchState.forward) move = 1;
+
     if (move !== 0) {
         let nx = px + Math.cos(pa) * config.playerSpeed * dt * move;
         let ny = py + Math.sin(pa) * config.playerSpeed * dt * move;
@@ -270,3 +292,29 @@ document.addEventListener('mousemove', (e) => {
         pitch = Math.max(-250, Math.min(250, pitch - e.movementY * 1.2));
     }
 });
+
+// ===== スマホ用タッチ操作（追記のみ）=====
+if (isTouch) {
+
+    canvas.addEventListener('touchstart', e => {
+        const t = e.touches[0];
+        const x = t.clientX;
+        const w = window.innerWidth;
+
+        // 左40%：前進
+        if (x < w * 0.4) {
+            touchState.forward = true;
+        }
+
+        // 右40%：視点回転
+        if (x > w * 0.6) {
+            touchState.turn = (x > w * 0.8) ? 1 : -1;
+        }
+    }, { passive: true });
+
+    canvas.addEventListener('touchend', () => {
+        touchState.forward = false;
+        touchState.back = false;
+        touchState.turn = 0;
+    }, { passive: true });
+}

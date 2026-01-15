@@ -35,6 +35,11 @@ let touchState = {
     turn: 0   // -1:左回転 / +1:右回転
 };
 
+// --- スワイプ用（スマホ視点操作） ---
+let lastTouchX = 0;
+let lastTouchY = 0;
+
+
 
 /* ===== 経路探索(BFS)エンジン ===== */
 const GameAI = {
@@ -298,6 +303,10 @@ if (isTouch) {
 
     canvas.addEventListener('touchstart', e => {
         const t = e.touches[0];
+
+        lastTouchX = t.clientX;
+        lastTouchY = t.clientY;
+
         const x = t.clientX;
         const w = window.innerWidth;
 
@@ -318,3 +327,19 @@ if (isTouch) {
         touchState.turn = 0;
     }, { passive: true });
 }
+
+canvas.addEventListener('touchmove', e => {
+    const t = e.touches[0];
+
+    const dx = t.clientX - lastTouchX;
+    const dy = t.clientY - lastTouchY;
+
+    lastTouchX = t.clientX;
+    lastTouchY = t.clientY;
+
+    // 横スワイプ：回転（マウスに近い操作）
+    pa += dx * 0.003;
+
+    // 縦スワイプ：視点上下
+    pitch = Math.max(-250, Math.min(250, pitch - dy * 0.8));
+}, { passive: true });

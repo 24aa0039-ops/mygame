@@ -101,6 +101,40 @@
     </div>
 </div>
 
+<div id="resultScreen" style="
+    position:fixed;
+    inset:0;
+    display:none;
+    justify-content:center;
+    align-items:center;
+    background:rgba(0,0,0,0.85);
+    z-index:200;
+    text-align:center;
+">
+    <div style="
+        background:#111;
+        border:2px solid #4db8ff;
+        padding:30px 40px;
+        border-radius:20px;
+        min-width:300px;
+    ">
+        <h2 style="color:#4db8ff">RESULT</h2>
+        <p id="rScore">SCORE: 0</p>
+        <p id="rTime">TIME: 0s</p>
+        <p id="rFinal" style="font-size:22px;color:#ffad33"></p>
+
+        <hr style="border:0;border-top:1px solid #333;margin:15px 0">
+
+        <h3>🏆 RANKING</h3>
+        <ol id="rankingList" style="text-align:left"></ol>
+
+        <button class="diff-btn normal" onclick="backToTitle()" style="margin-top:15px">
+            タイトルへ
+        </button>
+    </div>
+</div>
+
+
 <div id="ui" style="display:none">
     <div id="info">SCORE: 0 | TIME: 60s</div>
     <div style="margin-top:5px;">

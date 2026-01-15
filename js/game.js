@@ -13,8 +13,11 @@ const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
 let RAYS = isTouch ? 160 : 300;
 
 
-const W = 1200, H = 600; 
-canvas.width = W; canvas.height = H;
+let W = window.innerWidth;
+let H = window.innerHeight;
+canvas.width = W;
+canvas.height = H;
+
 
 // 動的に変更するため let に変更
 let MAP_W = 21, MAP_H = 21; 
@@ -343,3 +346,19 @@ canvas.addEventListener('touchmove', e => {
     // 縦スワイプ：視点上下
     pitch = Math.max(-250, Math.min(250, pitch - dy * 0.8));
 }, { passive: true });
+
+if (isTouch) {
+    // スマホは横向き推奨
+    screen.orientation?.lock?.("landscape").catch(()=>{});
+}
+
+function checkOrientation() {
+    if (isTouch && window.innerHeight > window.innerWidth) {
+        msgUI.innerText = "📱 横向きでプレイしてください";
+        msgUI.style.display = 'block';
+    } else {
+        msgUI.style.display = 'none';
+    }
+}
+window.addEventListener('resize', checkOrientation);
+checkOrientation();

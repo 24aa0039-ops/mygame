@@ -6,6 +6,7 @@ const ctx = canvas.getContext('2d');
 const infoUI = document.getElementById('info');
 const msgUI = document.getElementById('message');
 
+
 // ==== デバイス判定 ====
 const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
 
@@ -15,6 +16,7 @@ let RAYS = isTouch ? 160 : 300;
 
 let W = window.innerWidth;
 let H = window.innerHeight;
+resizeCanvas();
 canvas.width = W;
 canvas.height = H;
 
@@ -238,9 +240,9 @@ async function loop() {
     if (keys['a'] || keys['arrowleft']) pa -= config.rotSpeed * dt;
     if (keys['d'] || keys['arrowright']) pa += config.rotSpeed * dt;
     // スマホ回転
-    if (isTouch && touchState.turn !== 0) {
-    pa += touchState.turn * config.rotSpeed * dt;
-    }
+    //if (isTouch && touchState.turn !== 0) {
+    //pa += touchState.turn * config.rotSpeed * dt;
+    //}
 
     let move = (keys['w'] || keys['arrowup'] ? 1 : keys['s'] || keys['arrowdown'] ? -1 : 0);
     if (isTouch && touchState.forward) move = 1;
@@ -301,12 +303,15 @@ document.addEventListener('mousemove', (e) => {
     }
 });
 
-// ===== スマホ用タッチ操作（追記のみ）=====
+
+
+// ===== スマホ用タッチ操作（修正版）=====
 if (isTouch) {
 
     canvas.addEventListener('touchstart', e => {
-        const t = e.touches[0];
+        e.preventDefault();
 
+        const t = e.touches[0];
         lastTouchX = t.clientX;
         lastTouchY = t.clientY;
 
@@ -314,51 +319,46 @@ if (isTouch) {
         const w = window.innerWidth;
 
         // 左40%：前進
-        if (x < w * 0.4) {
-            touchState.forward = true;
-        }
+        touchState.forward = (x < w * 0.4);
 
-        // 右40%：視点回転
-        if (x > w * 0.6) {
-            touchState.turn = (x > w * 0.8) ? 1 : -1;
-        }
-    }, { passive: true });
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', e => {
+        e.preventDefault();
+
+        const t = e.touches[0];
+        const dx = t.clientX - lastTouchX;
+        const dy = t.clientY - lastTouchY;
+
+        lastTouchX = t.clientX;
+        lastTouchY = t.clientY;
+
+        // 視点回転（感度を弱める）
+        pa += dx * 0.0025;
+        pitch = Math.max(-200, Math.min(200, pitch - dy * 0.6));
+
+    }, { passive: false });
 
     canvas.addEventListener('touchend', () => {
         touchState.forward = false;
-        touchState.back = false;
-        touchState.turn = 0;
-    }, { passive: true });
+    }, { passive: false });
 }
-
-canvas.addEventListener('touchmove', e => {
-    const t = e.touches[0];
-
-    const dx = t.clientX - lastTouchX;
-    const dy = t.clientY - lastTouchY;
-
-    lastTouchX = t.clientX;
-    lastTouchY = t.clientY;
-
-    // 横スワイプ：回転（マウスに近い操作）
-    pa += dx * 0.003;
-
-    // 縦スワイプ：視点上下
-    pitch = Math.max(-250, Math.min(250, pitch - dy * 0.8));
-}, { passive: true });
 
 if (isTouch) {
-    // スマホは横向き推奨
-    screen.orientation?.lock?.("landscape").catch(()=>{});
+    config.playerSpeed *= 0.75;
+    config.rotSpeed *= 0.85;
 }
 
-function checkOrientation() {
-    if (isTouch && window.innerHeight > window.innerWidth) {
-        msgUI.innerText = "📱 横向きでプレイしてください";
-        msgUI.style.display = 'block';
-    } else {
-        msgUI.style.display = 'none';
-    }
+
+function resizeCanvas() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W;
+    canvas.height = H;
 }
-window.addEventListener('resize', checkOrientation);
-checkOrientation();
+
+window.addEventListener('resize', () => {
+    resizeCanvas();
+    checkOrientation();
+});
+

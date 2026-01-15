@@ -333,9 +333,9 @@ if (isTouch) {
         lastTouchX = t.clientX;
         lastTouchY = t.clientY;
 
-        // 視点回転（感度を弱める）
-        pa += dx * 0.0025;
-        pitch = Math.max(-200, Math.min(200, pitch - dy * 0.6));
+        // 視点回転
+        pa += dx * 0.004;
+        pitch = Math.max(-200, Math.min(200, pitch - dy * 0.5));
 
     }, { passive: false });
 
